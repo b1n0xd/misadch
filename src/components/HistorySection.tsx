@@ -21,7 +21,7 @@ const HistorySection = () => {
 
 
               </p>
-              <p>Nos valeurs fondamentales sont le respect de la <span className="text-primary font-bold">dignité</span>, l’humanité, la <span className="text-primary font-bold">bienfaisance</span>, l’<span className="text-primary font-bold">écoute active</span>, la <span className="text-primary font-bold">confidentialité</span> et la <span className="text-primary font-bold">solidarité</span>. Elles guident chacune de nos interventions et nourrissent notre engagement quotidien auprès des personnes que nous accompagnons.</p>
+              <p>Nos valeurs fondamentales sont le respect de la <span className="text-primary font-bold">dignité</span>, l’<span className="text-primary font-bold">humanité</span>, la <span className="text-primary font-bold">bienfaisance</span>, l’<span className="text-primary font-bold">écoute active</span>, la <span className="text-primary font-bold">confidentialité</span> et la <span className="text-primary font-bold">solidarité</span>. Elles guident chacune de nos interventions et nourrissent notre engagement quotidien auprès des personnes que nous accompagnons.</p>
             </div>
           </div>
       

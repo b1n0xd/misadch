@@ -23,10 +23,8 @@ const HeroSection = () => {
               Nos prestations sont personnalisées et adaptées à vos besoins. Chez <span className="text-primary font-bold">MISAD</span>, nous plaçons l'humain au cœur du soin. Notre équipe d'infirmières et d'infirmiers vous accompagne à domicile avec chaleur, écoute et professionnalisme.
             </p>
             <div className="flex flex-wrap gap-4 pt-4">
-              <a 
-                href="https://wa.me/41227886595"
-                target="_blank"
-                rel="noopener noreferrer"
+              <a
+                href="tel:+41227886595"
                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 py-2 shadow-soft transition-all duration-300 hover:scale-105 hover:shadow-strong text-base"
               >
                 <Phone className="h-5 w-5" />

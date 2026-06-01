@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"c:\\\\Users\\\\lucia\\\\OneDrive\\\\Área de Trabalho\\\\Cliente MISAD\\\\misadch\" check-ignore server.cjs)",
+      "Bash(echo \"exit:$?\")"
+    ]
+  }
+}
