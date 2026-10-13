@@ -1,13 +1,21 @@
-import { Phone, Mail, MapPin, Clock } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { saveConsent, useCookieConsent } from "@/lib/cookieConsent";
+
+const MAP_QUERY = encodeURIComponent(
+  "MISAD Mon infirmier soins à domicile, Avenue Louis-Casaï 81, 1216 Cointrin"
+);
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${MAP_QUERY}&hl=fr&output=embed`;
+const MAP_LINK_URL = "https://www.google.com/maps/place/?q=place_id:ChIJiX6S-j1ljEcRfONT51j1aXU";
 
 const ContactSection = () => {
   const { toast } = useToast();
+  const consent = useCookieConsent();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -115,16 +123,39 @@ const ContactSection = () => {
                 Localisation
               </h3>
               <div className="aspect-video rounded-lg overflow-hidden">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2759.8!2d6.1080!3d46.2290!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478c6e8e8e8e8e8f%3A0x8e8e8e8e8e8e8e8e!2sAvenue%20Louis-Casai%2081%2C%201216%20Cointrin!5e0!3m2!1sfr!2sch!4v1699000000000"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Localisation Misad Genève"
-                />
+                {consent?.maps ? (
+                  <iframe
+                    src={MAP_EMBED_URL}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Localisation Misad Genève"
+                  />
+                ) : (
+                  // Google Maps sets third-party cookies: load it only after consent.
+                  <div className="h-full w-full bg-muted flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <MapPin className="h-8 w-8 text-primary" />
+                    <p className="text-sm text-muted-foreground max-w-sm">
+                      La carte est fournie par Google Maps, qui dépose des cookies et
+                      collecte votre adresse IP.
+                    </p>
+                    <Button size="sm" onClick={() => saveConsent({ maps: true })}>
+                      Accepter et afficher la carte
+                    </Button>
+                    <a
+                      href={MAP_LINK_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary-hover"
+                    >
+                      Ouvrir dans Google Maps
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>

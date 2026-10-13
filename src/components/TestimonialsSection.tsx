@@ -22,7 +22,6 @@ interface GoogleReview {
   author_url?: string;
   profile_photo_url?: string;
   rating: number;
-  relative_time_description: string;
   text: string;
   time: number;
 }
@@ -33,48 +32,87 @@ interface PlaceResult {
   reviews?: GoogleReview[];
 }
 
+// Real Google reviews (copied from Google Maps), shown when the API is not configured.
+// Rating and total come from the Google Business profile — update them when new reviews arrive.
+// `time` is approximate (Google only shows "il y a X mois").
+const GOOGLE_RATING = 5.0;
+const GOOGLE_TOTAL_REVIEWS = 14;
+
+const staticReviews: GoogleReview[] = [
+  {
+    author_name: "Craquette",
+    rating: 5,
+    text: "Nous avons découvert cette équipe FORMIDABLE grâce à notre médecin de famille. C'est une petite structure très professionnelle et même temps on dirait une jolie famille qui s'occupe avec bienveillance des personnes en difficultés. Quel soulagement depuis que nous sommes avec eux.",
+    time: Date.parse("2026-04-10") / 1000,
+  },
+  {
+    author_name: "Fred FANCELLO",
+    rating: 5,
+    text: "Un immense merci à Miguel et à toute l’équipe de MISAD pour leur accompagnement exceptionnel. Vous avez fait preuve d’un professionnalisme irréprochable, mais surtout d’une grande humanité, de patience et de gentillesse dans l’accompagnement de mes parents. Votre soutien a été constant et précieux jusqu’à l’entrée de mon papa, âgé de 85 ans, en EMS en ce début d’année. Dans une période délicate pour toute une famille, pouvoir compter sur une équipe aussi engagée, bienveillante et fiable fait toute la différence. Vous avez été formidables du début à la fin. Je recommande MISAD sans la moindre hésitation.",
+    time: Date.parse("2026-02-10") / 1000,
+  },
+  {
+    author_name: "Moussa MARIKO",
+    rating: 5,
+    text: "Une équipe professionnelle et incroyablement réactive. On sent surtout qu’ils respectent profondément leurs patients. Toujours ponctuels, toujours souriants, toujours prêts à expliquer, rassurer et accompagner — leur présence transforme une situation parfois difficile en un moment de confiance et de sérénité. Un immense merci pour leur dévouement. Si vous cherchez des infirmiers à domicile vraiment qualifiés et bienveillants, vous êtes au bon endroit.",
+    time: Date.parse("2025-12-10") / 1000,
+  },
+  {
+    author_name: "Katrin Wenninger",
+    rating: 5,
+    text: "Un immense merci à cette formidable équipe, tant pour son professionnalisme que pour son empathie et son engagement sans faille. 5 étoiles? non, plus! 6 étoiles. Avec toute notre reconnaissance+++",
+    time: Date.parse("2026-02-10") / 1000,
+  },
+  {
+    author_name: "Jessica U.",
+    rating: 5,
+    text: "Je tiens à exprimer toute ma gratitude pour MISAD mais surtout pour Miguel qui est un infirmier exceptionnel, dont le professionnalisme et la gentillesse font toute la différence. Ses compétences médicales sont remarquables, et il sait toujours mettre ses patients à l'aise avec son approche humaine et bienveillante. Je recommande vivement MISAD à tous ceux qui recherchent un service de soins à domicile de haute qualité.",
+    time: Date.parse("2024-10-10") / 1000,
+  },
+];
+
+const relativeTimeFormat = new Intl.RelativeTimeFormat("fr", { numeric: "auto" });
+
+const formatRelativeTime = (time: number) => {
+  const days = Math.round((time * 1000 - Date.now()) / 86_400_000);
+  if (Math.abs(days) < 30) return relativeTimeFormat.format(days, "day");
+  const months = Math.round(days / 30);
+  if (Math.abs(months) < 12) return relativeTimeFormat.format(months, "month");
+  return relativeTimeFormat.format(Math.round(days / 365), "year");
+};
+
+const TRUNCATE_AT = 200;
+
 const TestimonialsSection = () => {
   const [reviews, setReviews] = useState<GoogleReview[]>([]);
   const [placeRating, setPlaceRating] = useState<number | null>(null);
   const [totalReviews, setTotalReviews] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingGoogle, setUsingGoogle] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || "";
   const placeId = import.meta.env.VITE_GOOGLE_PLACE_ID || PLACE_ID;
 
-  // Fallback static reviews (shown when API is not configured)
-  const fallbackReviews: GoogleReview[] = [
-    {
-      author_name: "Marie L.",
-      rating: 5,
-      relative_time_description: "il y a 2 mois",
-      text: "L'équipe de Misad s'occupe de ma mère depuis 2 ans. Leur professionnalisme et leur gentillesse nous ont vraiment rassurés. Je recommande vivement leurs services.",
-      time: Date.now() / 1000,
-    },
-    {
-      author_name: "Jean-Pierre D.",
-      rating: 5,
-      relative_time_description: "il y a 3 mois",
-      text: "Après mon opération, j'ai bénéficié de soins quotidiens à domicile. Les infirmières étaient toujours à l'heure, attentives et compétentes. Merci pour tout !",
-      time: Date.now() / 1000,
-    },
-    {
-      author_name: "Sophie M.",
-      rating: 5,
-      relative_time_description: "il y a 1 mois",
-      text: "Un service exceptionnel ! L'équipe est stable, nous avons toujours les mêmes infirmières ce qui crée une vraie relation de confiance. Disponibles 7j/7 comme promis.",
-      time: Date.now() / 1000,
-    },
-  ];
+  const applyStaticReviews = () => {
+    setReviews(staticReviews);
+    setPlaceRating(GOOGLE_RATING);
+    setTotalReviews(GOOGLE_TOTAL_REVIEWS);
+  };
+
+  const toggleExpanded = (index: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
 
   useEffect(() => {
     const fetchGoogleReviews = async () => {
       if (!apiKey || !placeId) {
-        // No API key configured, use fallback
-        setReviews(fallbackReviews);
-        setPlaceRating(5.0);
-        setTotalReviews(fallbackReviews.length);
+        // No API key configured, use static real reviews
+        applyStaticReviews();
         setLoading(false);
         return;
       }
@@ -101,17 +139,12 @@ const TestimonialsSection = () => {
           setReviews(sortedReviews);
           setPlaceRating(place.rating || null);
           setTotalReviews(place.user_ratings_total || null);
-          setUsingGoogle(true);
         } else {
-          setReviews(fallbackReviews);
-          setPlaceRating(5.0);
-          setTotalReviews(fallbackReviews.length);
+          applyStaticReviews();
         }
       } catch (error) {
-        console.warn("Could not fetch Google reviews, using fallback:", error);
-        setReviews(fallbackReviews);
-        setPlaceRating(5.0);
-        setTotalReviews(fallbackReviews.length);
+        console.warn("Could not fetch Google reviews, using static reviews:", error);
+        applyStaticReviews();
       } finally {
         setLoading(false);
       }
@@ -220,9 +253,7 @@ const TestimonialsSection = () => {
           </div>
           
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {usingGoogle
-              ? "Avis vérifiés de nos patients sur Google"
-              : "Ce que nos patients disent de nos services"}
+            Avis vérifiés de nos patients sur Google
           </p>
         </div>
 
@@ -239,15 +270,24 @@ const TestimonialsSection = () => {
                 <div className="flex items-center justify-between">
                   {renderStars(review.rating)}
                   <span className="text-xs text-muted-foreground">
-                    {review.relative_time_description}
+                    {formatRelativeTime(review.time)}
                   </span>
                 </div>
 
                 {/* Review Text */}
                 <p className="text-muted-foreground leading-relaxed text-sm min-h-[4.5rem]">
-                  "{review.text.length > 200
-                    ? review.text.slice(0, 200) + "..."
+                  "{review.text.length > TRUNCATE_AT && !expanded.has(index)
+                    ? review.text.slice(0, TRUNCATE_AT).trimEnd() + "..."
                     : review.text}"
+                  {review.text.length > TRUNCATE_AT && (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpanded(index)}
+                      className="ml-1 text-primary hover:text-primary-hover font-medium"
+                    >
+                      {expanded.has(index) ? "Réduire" : "Lire plus"}
+                    </button>
+                  )}
                 </p>
 
                 {/* Author */}
@@ -271,16 +311,14 @@ const TestimonialsSection = () => {
                       {review.author_name}
                     </p>
                     <div className="flex items-center gap-1">
-                      {usingGoogle && (
-                        <svg className="h-3 w-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
-                      )}
+                      <svg className="h-3 w-3" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                      </svg>
                       <span className="text-xs text-muted-foreground">
-                        {usingGoogle ? "Avis Google" : "Patient Misad"}
+                        Avis Google
                       </span>
                     </div>
                   </div>

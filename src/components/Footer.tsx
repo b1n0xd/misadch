@@ -1,5 +1,7 @@
 import { Phone, Mail, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import Logo from "@/components/Logo";
+import { openCookiePreferences } from "@/lib/cookieConsent";
 
 const Footer = () => {
   return (
@@ -77,8 +79,20 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="pt-8 border-t border-background/20 text-center text-background/60">
+        <div className="pt-8 border-t border-background/20 text-center text-background/60 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
           <p>© 2025 Misad. Tous droits réservés.</p>
+          <span className="hidden sm:inline" aria-hidden="true">·</span>
+          <Link to="/confidentialite" className="hover:text-background transition-colors">
+            Politique de confidentialité
+          </Link>
+          <span className="hidden sm:inline" aria-hidden="true">·</span>
+          <button
+            type="button"
+            onClick={openCookiePreferences}
+            className="hover:text-background transition-colors"
+          >
+            Gérer les cookies
+          </button>
         </div>
       </div>
     </footer>
