@@ -17,7 +17,10 @@ const mimeTypes = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
-  ".txt": "text/plain; charset=utf-8"
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2"
 };
 
 function sendFile(res, filePath) {
@@ -31,9 +34,11 @@ function sendFile(res, filePath) {
       return;
     }
 
+    // Only hashed build files in /assets never change; robots.txt, sitemap.xml and HTML must stay fresh.
+    const isHashedAsset = filePath.startsWith(path.join(distPath, "assets") + path.sep);
     res.writeHead(200, {
       "Content-Type": contentType,
-      "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=31536000, immutable"
+      "Cache-Control": isHashedAsset ? "public, max-age=31536000, immutable" : "no-cache"
     });
 
     res.end(data);
